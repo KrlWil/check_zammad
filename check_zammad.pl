@@ -9,6 +9,11 @@
 use LWP;
 use JSON;
 use Monitoring::Plugin;
+use Scalar::Util qw(reftype);
+
+
+
+use Data::Dumper;
 
 
 my $plugin = Monitoring::Plugin->new(
@@ -134,8 +139,12 @@ sub send_request {
 sub check_queue {
 
   my $plugin = shift;
-  my $tickets_count = 0;
 
+  my $message;
+
+  my $tickets_count = 0;
+  my @tickets_list;
+  my $titles = "\n";
 
   my %params;
 
@@ -147,10 +156,29 @@ sub check_queue {
 
   $tickets_count = $response->{'tickets_count'};
 
+
+  @tickets_list = $response->{'assets'}->{'Ticket'};
+
+
+  foreach my $tickets (@tickets_list) {
+      for my $ticket ( %{ $tickets} ) {
+
+      if ( defined( $ticket->{'title'}  )) {
+                  $titles = $titles . $ticket->{'title'} . " \n" ;
+      }
+
+    }
+
+  }
+
+
+
   if ( $tickets_count > 0 ) {
-    $plugin->nagios_exit( CRITICAL, " There are $tickets_count tickets open ");
+    $message = "There are $tickets_count tickets open with titles: $titles";
+    $plugin->nagios_exit( CRITICAL, $message);
   } else {
-    $plugin->nagios_exit( OK, "There are no new tickets open");
+    $message = "There are no new tickets open";
+    $plugin->nagios_exit( OK, $message);
   }
 
 }
